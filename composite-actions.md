@@ -1,75 +1,83 @@
-# Composite Actions Support Implementation Plan
+# Composite Actions Secrets Support Improvement Plan
 
 ## Overview
-This document outlines the plan for implementing GitHub Composite Actions support in act. Composite actions allow users to combine multiple workflow steps into a reusable action, which can then be used in other workflows.
+This document outlines the plan for improving secrets handling in composite actions to match GitHub Actions' behavior. Currently, act strips secrets from composite actions, which prevents them from accessing secrets in the same way as GitHub Actions does.
 
-## 1. Testing Strategy
+## 1. Current State
+
+### Existing Implementation
+- Composite actions are supported in act
+- Basic functionality works (steps, inputs, outputs, environment variables)
+- Secrets are stripped from composite actions (`configCopy.Secrets = nil` in `action_composite.go`)
+- Users must work around this by passing secrets as inputs
+
+### GitHub Actions Behavior
+- Composite actions can access secrets directly using `${{ secrets.SECRET_NAME }}`
+- Secrets are properly scoped and available in all steps
+- No need to pass secrets as inputs
+- Maintains security by only exposing secrets to authorized actions
+
+## 2. Testing Strategy
 
 ### Test Cases
-1. **Basic Composite Action Tests**
-   - Test parsing of composite action metadata (action.yml)
-   - Test basic step execution within composite actions
-   - Test input/output handling between composite and calling workflow
+1. **Basic Secrets Access**
+   - Test direct secrets access in composite actions
+   - Verify secrets are available in all steps
+   - Test secrets in environment variables
 
 2. **Complex Scenarios**
-   - Nested composite actions (composite actions calling other composite actions)
-   - Composite actions with conditional steps
-   - Composite actions with environment variables
-   - Composite actions with secrets handling
+   - Nested composite actions with secrets
+   - Secrets in conditional steps
+   - Secrets in output values
+   - Secrets in environment variables
 
 3. **Edge Cases**
-   - Error handling in composite actions
-   - Timeout scenarios
-   - Resource cleanup
-   - Invalid composite action definitions
+   - Invalid secret references
+   - Missing secrets
+   - Secret masking
+   - Secret scoping
 
 ### Testing Infrastructure
 1. **Test Workflows**
-   - Create a dedicated test repository with sample composite actions
-   - Implement GitHub Actions workflows that use these composite actions
-   - Create corresponding act-compatible test cases
+   - Create test cases that mirror GitHub Actions behavior
+   - Test both local and remote composite actions
+   - Verify secret masking and security
 
 2. **Integration Tests**
    - Add test cases to act's existing test suite
-   - Create new test files specifically for composite actions
-   - Implement test helpers for composite action validation
+   - Create new test files for secrets handling
+   - Implement test helpers for secret validation
 
-3. **Validation Tools**
-   - Create tools to validate composite action definitions
-   - Implement schema validation for action.yml files
-   - Add runtime validation for composite action execution
+## 3. Implementation Plan
 
-## 2. MVP Implementation
+### Phase 1: Core Changes
+1. **Remove Secrets Stripping**
+   - Remove `configCopy.Secrets = nil` in `action_composite.go`
+   - Ensure secrets are properly passed to composite actions
+   - Maintain existing security model
 
-### Phase 1: Basic Support
-1. **Parser Updates**
-   - Extend action parser to handle composite action metadata
-   - Add support for parsing composite action steps
-   - Implement input/output mapping
+2. **Update Environment Handling**
+   - Modify environment variable handling to include secrets
+   - Ensure proper scoping of secrets
+   - Handle secret masking
 
-2. **Runtime Support**
-   - Add composite action execution engine
-   - Implement step execution within composite actions
-   - Handle environment variable scoping
-
-3. **Integration**
-   - Update workflow runner to detect and handle composite actions
-   - Implement composite action resolution
-   - Add basic error handling
+3. **Expression Evaluation**
+   - Update expression evaluator to handle secrets in composite actions
+   - Ensure proper interpolation of secret values
+   - Handle secret references in outputs
 
 ### Phase 2: Enhanced Features
-1. **Advanced Features**
-   - Support for nested composite actions
-   - Conditional step execution
-   - Environment variable inheritance
-   - Secrets handling
+1. **Security Improvements**
+   - Add secret validation
+   - Implement proper secret scoping
+   - Add secret masking in logs
 
 2. **Performance Optimization**
-   - Caching of composite action definitions
-   - Optimized step execution
-   - Resource management
+   - Optimize secret handling
+   - Cache secret values where appropriate
+   - Minimize secret exposure
 
-## 3. Code Standards
+## 4. Code Standards
 
 ### Style Guidelines
 1. **Code Organization**
@@ -78,9 +86,9 @@ This document outlines the plan for implementing GitHub Composite Actions suppor
    - Use clear and descriptive naming conventions
 
 2. **Documentation**
-   - Add inline documentation for new functions
+   - Add inline documentation for secret handling
    - Update existing documentation
-   - Include examples in comments
+   - Include security considerations
 
 3. **Testing**
    - Maintain test coverage requirements
@@ -88,73 +96,51 @@ This document outlines the plan for implementing GitHub Composite Actions suppor
    - Include both unit and integration tests
 
 ### Quality Checks
-1. **Code Review Process**
-   - Ensure all new code follows act's style guide
-   - Verify test coverage
-   - Check for proper error handling
+1. **Security Review**
+   - Ensure proper secret handling
+   - Verify secret masking
+   - Check for security vulnerabilities
 
 2. **Performance Considerations**
-   - Monitor execution time
-   - Optimize resource usage
+   - Monitor secret handling overhead
+   - Optimize secret access
    - Consider caching strategies
 
-## 4. Documentation Updates
+## 5. Documentation Updates
 
 ### Technical Documentation
 1. **Code Documentation**
-   - Update API documentation
-   - Add composite action examples
-   - Document new configuration options
+   - Update secret handling documentation
+   - Add composite action secret examples
+   - Document security considerations
 
 2. **User Documentation**
-   - Create composite action usage guide
+   - Create secret handling guide
    - Add troubleshooting section
    - Include best practices
 
 ### Integration Guide
 1. **Usage Examples**
-   - Basic composite action creation
-   - Advanced usage scenarios
-   - Common patterns and anti-patterns
+   - Basic secret access in composite actions
+   - Advanced secret handling scenarios
+   - Security best practices
 
 2. **Configuration**
-   - Document new configuration options
-   - Explain environment setup
+   - Document secret configuration
+   - Explain security setup
    - Provide troubleshooting steps
-
-## Timeline and Milestones
-
-1. **Week 1-2: Testing Infrastructure**
-   - Set up test environment
-   - Create initial test cases
-   - Implement validation tools
-
-2. **Week 3-4: MVP Development**
-   - Implement basic composite action support
-   - Add core functionality
-   - Create initial integration tests
-
-3. **Week 5-6: Enhancement and Refinement**
-   - Add advanced features
-   - Optimize performance
-   - Improve error handling
-
-4. **Week 7-8: Documentation and Review**
-   - Update documentation
-   - Perform code review
-   - Final testing and validation
 
 ## Success Criteria
 
 1. **Functionality**
+   - Secrets work identically to GitHub Actions
    - All test cases pass
-   - Composite actions work as expected
    - Performance meets requirements
 
-2. **Code Quality**
-   - Follows act's coding standards
-   - Maintains test coverage
-   - Properly documented
+2. **Security**
+   - Proper secret handling
+   - Secure secret access
+   - No security vulnerabilities
 
 3. **User Experience**
    - Clear documentation
@@ -163,67 +149,59 @@ This document outlines the plan for implementing GitHub Composite Actions suppor
 
 ## Next Steps
 
-1. Review and approve implementation plan
-2. Set up development environment
-3. Begin testing infrastructure implementation
-4. Start MVP development 
+1. Begin implementation by removing secrets stripping in `action_composite.go`
+2. Add test cases for secret handling
+3. Update environment handling and expression evaluation
+4. Implement security measures and secret masking
+5. Update documentation
 
 ## Todo List
 
-### Phase 1: Testing Infrastructure
-- [ ] Create test repository structure
-  - [ ] Set up `pkg/runner/testdata/composite-actions/` directory
-  - [ ] Create sample composite action definitions
-  - [ ] Create test workflows using composite actions
-- [ ] Implement test framework
-  - [ ] Create `pkg/runner/composite_action_test.go` for unit tests
-  - [ ] Add mock implementations for composite action execution
-  - [ ] Set up test helpers for composite action validation
-- [ ] Write test cases
-  - [ ] Basic composite action parsing tests
-  - [ ] Step execution within composite actions
-  - [ ] Input/output handling tests
-  - [ ] Environment variable scoping tests
-  - [ ] Error handling tests
-- [ ] Integration tests
-  - [ ] Add composite action test workflows to CI
-  - [ ] Create end-to-end test scenarios
-  - [ ] Test composite action caching
-- [ ] Validation tools
-  - [ ] Implement action.yml schema validation
-  - [ ] Add runtime validation for composite actions
-  - [ ] Create test utilities for composite action validation
+### Phase 1: Core Changes
+- [ ] Remove secrets stripping
+  - [ ] Update `action_composite.go`
+  - [ ] Modify config handling
+  - [ ] Update tests
+- [ ] Update environment handling
+  - [ ] Modify environment setup
+  - [ ] Add secret support
+  - [ ] Update tests
+- [ ] Update expression evaluation
+  - [ ] Modify expression evaluator
+  - [ ] Add secret interpolation
+  - [ ] Update tests
 
-### Phase 2: MVP Development
-- [ ] Extend action parser for composite actions
-- [ ] Implement composite action metadata handling
-- [ ] Add basic step execution within composites
-- [ ] Implement input/output mapping
-- [ ] Add environment variable scoping
-- [ ] Create composite action resolution system
-- [ ] Implement basic error handling
+### Phase 2: Security and Testing
+- [ ] Add security measures
+  - [ ] Implement secret validation
+  - [ ] Add secret scoping
+  - [ ] Implement secret masking
+- [ ] Add test cases
+  - [ ] Basic secret access tests
+  - [ ] Complex scenario tests
+  - [ ] Edge case tests
+- [ ] Performance optimization
+  - [ ] Optimize secret handling
+  - [ ] Add caching where appropriate
+  - [ ] Minimize secret exposure
 
-### Phase 3: Enhanced Features
-- [ ] Add support for nested composite actions
-- [ ] Implement conditional step execution
-- [ ] Add environment variable inheritance
-- [ ] Implement secrets handling
-- [ ] Add caching for composite actions
-- [ ] Optimize step execution
-- [ ] Implement resource management
-
-### Phase 4: Documentation and Review
-- [ ] Update API documentation
-- [ ] Create user guide for composite actions
-- [ ] Add troubleshooting section
-- [ ] Write usage examples
-- [ ] Document configuration options
-- [ ] Perform code review
-- [ ] Final testing and validation
+### Phase 3: Documentation
+- [ ] Update technical documentation
+  - [ ] Document secret handling
+  - [ ] Add code examples
+  - [ ] Update API docs
+- [ ] Create user documentation
+  - [ ] Write usage guide
+  - [ ] Add troubleshooting
+  - [ ] Include best practices
+- [ ] Security documentation
+  - [ ] Document security model
+  - [ ] Add security guidelines
+  - [ ] Include security considerations
 
 ### Ongoing Tasks
 - [ ] Maintain test coverage
 - [ ] Follow code style guidelines
-- [ ] Update documentation as features are added
-- [ ] Review and optimize performance
-- [ ] Address user feedback 
+- [ ] Update documentation
+- [ ] Review security
+- [ ] Address user feedback
